@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-print ("[INFO] capturando cámara...")
+print ("[INFO] Getting video...")
 cap = cv2.VideoCapture(0)
 
 while(True):
@@ -9,6 +9,7 @@ while(True):
     ret, frame = cap.read()
 
     # Our operations on the frame come here
+    # TODO 
 
     # Display the resulting frame
     cv2.imshow('frame',frame)
