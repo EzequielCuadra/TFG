@@ -29,11 +29,12 @@ print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('
 # initialize the initial learning rate, number of epochs to train for,
 # and batch size
 INIT_LR = 1e-4
-EPOCHS = 20
-BS = 32
+EPOCHS = 30
+BS = 16
 
 DIRECTORY = r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\Data"
 CATEGORIES = ["incorrect_mask", "with_mask", "without_mask"]
+
 
 annotations_dir = r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\Data\annotations"
 images_dir = r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\Data\images"
@@ -44,7 +45,7 @@ print("[INFO] loading images...")
 
 images = []
 labels = []
-
+# z=0
 for filename in os.listdir(images_dir):
     try:
         num = filename.split('.')[0]
@@ -66,6 +67,7 @@ for filename in os.listdir(images_dir):
                     break
                 # elif class_nam == 'face_with_mask_incorrect':
                 #     class_name = 'face_with_mask_incorrect'
+                #     print(num)
                 #     k = i
                 #     break
                 else:
@@ -75,13 +77,15 @@ for filename in os.listdir(images_dir):
                         class_name = 'with_mask'
                     elif class_nam == "face_with_mask_incorrect":
                         class_name = 'incorrect_mask'
-                        print(num)
+                        # k = i
                 box = json_data['Annotations'][k]['BoundingBox']
                 (x1, x2, y1, y2) = box
         if class_name is not None:
             try:
                 image = cv2.imread(os.path.join(images_dir, filename))
                 img = image[x2:y2, x1:y1]
+                # cv2.imwrite(str(z)+"testing.jpeg", img)
+                # z=z+1
                 img = cv2.resize(img, (224, 224))
                 img = img[..., ::-1].astype(np.float32)
                 img = preprocess_input(img)
@@ -184,6 +188,26 @@ H = model.fit(
     validation_data=(testX, testY),
     validation_steps=len(testX) // BS,
     epochs=EPOCHS)
+
+# Unfreeze the base model
+baseModel.trainable = True
+
+# It's important to recompile your model after you make any changes
+# to the `trainable` attribute of any inner layer, so that your changes
+# are take into account
+print("[INFO] compiling model...")
+opt = Adam(lr=1e-5, decay=1e-5 / EPOCHS)
+model.compile(loss="categorical_crossentropy", optimizer=opt,
+              metrics=["accuracy"])
+
+# Train end-to-end. Be careful to stop before you overfit!
+H = model.fit(
+    aug.flow(trainX, trainY, batch_size=BS),
+    steps_per_epoch=len(trainX) // BS,
+    validation_data=(testX, testY),
+    validation_steps=len(testX) // BS,
+    epochs=10)
+
 
 # # # make predictions on the testing set
 print("[INFO] evaluating network...")
