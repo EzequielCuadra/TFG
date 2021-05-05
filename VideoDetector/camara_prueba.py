@@ -3,12 +3,13 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
 from imutils.video import VideoStream
+import os
 from os.path import join
+import pygame
 import numpy as np
 import imutils
 import time
 import cv2
-import os
 
 
 def detect_and_predict_mask(frame, faceNet, maskNet):
@@ -72,9 +73,12 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
     # locations
     return (locs, preds)
 
+# load alarm
+pygame.init()
+detected_sound = pygame.mixer.Sound(r"alarm.WAV")
 
 # load our serialized face detector model from disk
-prototxtPath =  join(r"..", r"deploy.prototxt")
+prototxtPath = join(r"..", r"deploy.prototxt")
 weightsPath = join(r"..", r"res10_300x300_ssd_iter_140000.caffemodel")
 
 faceNet = cv2.dnn.readNetFromCaffe(prototxtPath, weightsPath)
@@ -121,7 +125,7 @@ while True:
         if label == "Mask":
             color = (0, 255, 0)
         elif label == "No Mask":
-            color = (0, 0, 255)
+            color = (0, 0, 255) 
         else:
             color = (0, 255, 255)
 
@@ -135,6 +139,10 @@ while True:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
         cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
 
+        # check if the labels is not mask, play an alarm
+        # loop = 0 only play once, maxtime = 50 ms its maxtime to stop the sound
+        if label.split(":")[0] != "Mask":
+            detected_sound.play(loops=0, maxtime=50)
         # show the output frame
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
