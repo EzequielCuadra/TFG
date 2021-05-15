@@ -1,15 +1,15 @@
 # import the necessary packages
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-from tensorflow.keras.preprocessing.image import img_to_array
-from tensorflow.keras.models import load_model
-from imutils.video import VideoStream
-import os
-from os.path import join
-import pygame
-import numpy as np
-import imutils
-import time
-import cv2
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input;
+from tensorflow.keras.preprocessing.image import img_to_array;
+from tensorflow.keras.models import load_model;
+from imutils.video import VideoStream;
+import os;
+from os.path import join;
+import pygame;
+import numpy as np;
+import imutils;
+import time;
+import cv2;
 
 
 def detect_and_predict_mask(frame, faceNet, maskNet):
@@ -73,6 +73,7 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
     # locations
     return (locs, preds)
 
+
 # load alarm
 pygame.init()
 detected_sound = pygame.mixer.Sound(r"alarm.WAV")
@@ -125,7 +126,7 @@ while True:
         if label == "Mask":
             color = (0, 255, 0)
         elif label == "No Mask":
-            color = (0, 0, 255) 
+            color = (0, 0, 255)
         else:
             color = (0, 255, 255)
 

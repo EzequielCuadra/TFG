@@ -13,8 +13,9 @@ from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.keras.utils import to_categorical
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 from imutils import paths
+import math
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,7 +31,7 @@ print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('
 # and batch size
 INIT_LR = 1e-4
 EPOCHS = 30
-BS = 16
+BS = 32
 
 DIRECTORY = r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\Data"
 CATEGORIES = ["incorrect_mask", "with_mask", "without_mask"]
@@ -45,7 +46,6 @@ print("[INFO] loading images...")
 
 images = []
 labels = []
-# z=0
 for filename in os.listdir(images_dir):
     try:
         num = filename.split('.')[0]
@@ -65,11 +65,6 @@ for filename in os.listdir(images_dir):
                     class_name = 'without_mask'
                     k = i
                     break
-                # elif class_nam == 'face_with_mask_incorrect':
-                #     class_name = 'face_with_mask_incorrect'
-                #     print(num)
-                #     k = i
-                #     break
                 else:
                     if class_nam in ['hijab_niqab', 'face_other_covering', "scarf_bandana", "balaclava_ski_mask", "other"]:
                         class_name = 'without_mask'
@@ -77,15 +72,12 @@ for filename in os.listdir(images_dir):
                         class_name = 'with_mask'
                     elif class_nam == "face_with_mask_incorrect":
                         class_name = 'incorrect_mask'
-                        # k = i
                 box = json_data['Annotations'][k]['BoundingBox']
                 (x1, x2, y1, y2) = box
         if class_name is not None:
             try:
                 image = cv2.imread(os.path.join(images_dir, filename))
                 img = image[x2:y2, x1:y1]
-                # cv2.imwrite(str(z)+"testing.jpeg", img)
-                # z=z+1
                 img = cv2.resize(img, (224, 224))
                 img = img[..., ::-1].astype(np.float32)
                 img = preprocess_input(img)
@@ -96,8 +88,6 @@ for filename in os.listdir(images_dir):
     except Exception as e:
                 print(str(e))
 
-# data = []
-# labels = []
 
 for category in CATEGORIES:
     path = os.path.join(DIRECTORY, category)
@@ -122,9 +112,6 @@ labels = lb.fit_transform(labels)
 labels = to_categorical(labels)
 
 
-# data = np.array(data, dtype="float32")
-# labels = np.array(labels)
-
 (trainX, testX, trainY, testY) = train_test_split(images, labels,
                                                   test_size=0.20, stratify=labels, random_state=120)
 
@@ -143,6 +130,8 @@ aug = ImageDataGenerator(
     shear_range=0.15,
     horizontal_flip=True,
     fill_mode="nearest")
+
+aug.fit(trainX)
 
 # # # load the MobileNetV2 network, ensuring the head FC layer sets are
 # # # left off
@@ -184,62 +173,46 @@ model.compile(loss="categorical_crossentropy", optimizer=opt,
 print("[INFO] training head...")
 H = model.fit(
     aug.flow(trainX, trainY, batch_size=BS),
-    steps_per_epoch=len(trainX) // BS,
-    validation_data=(testX, testY),
-    validation_steps=len(testX) // BS,
+    steps_per_epoch=math.floor(len(trainX) / BS),
+    validation_data=aug.flow(testX, testY,batch_size=BS),
+    validation_steps=math.floor(len(testX) / BS),
     epochs=EPOCHS)
 
-# Unfreeze the base model
-baseModel.trainable = True
-
-# It's important to recompile your model after you make any changes
-# to the `trainable` attribute of any inner layer, so that your changes
-# are take into account
-print("[INFO] compiling model...")
-opt = Adam(lr=1e-5, decay=1e-5 / EPOCHS)
-model.compile(loss="categorical_crossentropy", optimizer=opt,
-              metrics=["accuracy"])
-
-# Train end-to-end. Be careful to stop before you overfit!
-H = model.fit(
-    aug.flow(trainX, trainY, batch_size=BS),
-    steps_per_epoch=len(trainX) // BS,
-    validation_data=(testX, testY),
-    validation_steps=len(testX) // BS,
-    epochs=10)
-
+history_dict = H.history
+print(history_dict.keys())
 
 # # # make predictions on the testing set
 print("[INFO] evaluating network...")
-predIdxs = model.predict(testX, batch_size=BS)
+y_pred = model.predict(testX, batch_size=BS)
 
 # # # for each image in the testing set we need to find the index of the
 # # # label with corresponding largest predicted probability
-predIdxs = np.argmax(predIdxs, axis=1)
+predIdxs = np.argmax(y_pred, axis=1)
 
 # # # show a nicely formatted classification report
-print(classification_report(testY.argmax(axis=1), predIdxs,
-                            target_names=lb.classes_))
+cr = classification_report(testY.argmax(axis=1), predIdxs,target_names=lb.classes_)
+cm = np.array2string(confusion_matrix(testY.argmax(axis=1), predIdxs))
+print(cr)
+print(cm)
+f = open('report.txt', 'w')
+f.write('Classification Report\n\n{}\n\nConfusion Matrix\n\n{}\n'.format(cr, cm))
+f.close()
 
 # # # serialize the model to disk
 print("[INFO] saving mask detector model...")
 model.save("mask_detector_model", save_format="h5")
 print("[INFO] mask detector model saved...")
 
-""" # # # plot the training loss and accuracy
+# # # plot the training loss and accuracy
 N = EPOCHS
 plt.style.use("ggplot")
 plt.figure()
 plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
 plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
-plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
+plt.plot(np.arange(0, N), H.history["accuracy"], label="train_accuracy")
+plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_accuracy")
 plt.title("Training Loss and Accuracy")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend(loc="lower left")
-plt.savefig("plot.png") """
-
-# pred = model.predict(testX, batch_size=BS)
-# pred = np.argmax(pred, axis=1)
-# print(classification_report(testY.argmax(axis=1), pred, target_names=lb.classes_))
+plt.savefig("plot_2.png")
