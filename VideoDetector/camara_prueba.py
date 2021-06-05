@@ -37,7 +37,7 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
 
         # filter out weak detections by ensuring the confidence is
         # greater than the minimum confidence
-        if confidence > 0.45:
+        if confidence > 0.5:
             # compute the (x, y)-coordinates of the bounding box for
             # the object
             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
@@ -67,7 +67,7 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
         # faces at the same time rather than one-by-one predictions
         # in the above `for` loop
         faces = np.array(faces, dtype="float32")
-        preds = maskNet.predict(faces, batch_size=8)
+        preds = maskNet.predict(faces, batch_size=32)
 
     # return a 2-tuple of the face locations and their corresponding
     # locations
@@ -88,7 +88,8 @@ faceNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 faceNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL_FP16)
 
 # load the face mask detector model from disk
-maskNet = load_model(join(r"..", r"mask_detector_model"))
+maskNet = load_model(join(r"..", r"mask_detector_model_finetun_2dataset"))
+#maskNet = load_model(join(r"..", r"mask_detector_model2dataset"))
 # maskNet = load_model(r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\mask_detector_model")
 
 # initialize the video stream
@@ -114,11 +115,12 @@ while True:
     for (box, pred) in zip(locs, preds):
         # unpack the bounding box and predictions
         (startX, startY, endX, endY) = box
-        (face_no_mask, face_with_mask, face_incorrect_mask) = pred
+        (face_incorrect_mask, face_with_mask, face_no_mask) = pred
+        print(round(face_incorrect_mask,3),round(face_with_mask,3),round(face_no_mask,3))
 
-        if face_with_mask > face_no_mask and face_with_mask > face_incorrect_mask:
+        if face_with_mask > (face_no_mask + face_incorrect_mask):
             label = "Mask"
-        elif face_no_mask > face_with_mask and face_no_mask > face_incorrect_mask:
+        elif face_no_mask > (face_with_mask + face_incorrect_mask):
             label = "No Mask"
         else:
             label = "Incorrect Mask"

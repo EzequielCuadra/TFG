@@ -1,0 +1,18 @@
+Classification Report
+
+                precision    recall  f1-score   support
+
+incorrect_mask       0.93      0.97      0.95       142
+     with_mask       0.91      0.84      0.87       921
+  without_mask       0.76      0.85      0.80       507
+
+      accuracy                           0.86      1570
+     macro avg       0.86      0.89      0.87      1570
+  weighted avg       0.86      0.86      0.86      1570
+
+
+Confusion Matrix
+
+[[138   4   0]
+ [  9 775 137]
+ [  2  75 430]]
