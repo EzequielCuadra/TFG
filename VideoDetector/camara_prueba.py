@@ -88,9 +88,10 @@ faceNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 faceNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL_FP16)
 
 # load the face mask detector model from disk
-maskNet = load_model(join(r"..", r"mask_detector_model_finetun_2dataset"))
+maskNet = load_model(join(r"..", r"mask_detector_model1dataset"))
+#maskNet = load_model(join(r"..", r"mask_detector_model_finetun_1dataset"))
 #maskNet = load_model(join(r"..", r"mask_detector_model2dataset"))
-# maskNet = load_model(r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\mask_detector_model")
+#maskNet = load_model(join(r"..", r"mask_detector_model_finetun_2dataset"))
 
 # initialize the video stream
 print("[INFO] starting video stream...")

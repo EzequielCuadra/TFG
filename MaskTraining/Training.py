@@ -41,7 +41,7 @@ annotations_dir = r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\Data\annotations"
 images_dir = r"C:\Users\ezequ\Desktop\UOC\TFG\TFG\Data\images"
 
 # grab the list of images in our dataset directory, then initialize
-# the list of data (i.e., images) and class images
+# the list of images and labels
 print("[INFO] loading images...")
 
 images = []
@@ -106,7 +106,7 @@ for category in CATEGORIES:
 images = np.asarray(images, dtype="float32")
 labels = np.array(labels)
 
-print("LABELS SHAPE", labels)
+print("LABELS", labels)
 print("LABELS SHAPE", labels.shape)
 # # # perform one-hot encoding on the labels
 lb = LabelEncoder()
@@ -151,13 +151,11 @@ headModel = Dense(256, activation="relu")(headModel)
 headModel = Dropout(0.5)(headModel)
 headModel = Dense(3, activation="softmax")(headModel)
 
-# # # place the head FC model on top of the base model (this will become
-# # # the actual model we will train)
+# # # place the head FC model on top of the base model
 model = Model(inputs=baseModel.input, outputs=headModel)
 
 
-# # # loop over all layers in the base model and freeze them so they will
-# # # *not* be updated during the first training process
+# # # loop over all layers in the base model and freeze them
 for layer in baseModel.layers:
     layer.trainable = False
 
